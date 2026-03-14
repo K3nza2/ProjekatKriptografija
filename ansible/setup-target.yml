@@ -1,0 +1,83 @@
+---
+- name: Setup Target VM with Vulnerable Services
+  hosts: target
+  become: yes
+  tasks:
+    
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Install SSH server
+      apt:
+        name: openssh-server
+        state: present
+    
+    - name: Configure SSH for weak security (for testing)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        state: present
+      notify: restart ssh
+    
+    - name: Allow root login (for testing ONLY)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin yes'
+        state: present
+      notify: restart ssh
+    
+    - name: Create multiple test users
+      user:
+        name: "{{ item.name }}"
+        password: "{{ item.password | password_hash('sha512') }}"
+        shell: /bin/bash
+        createhome: yes
+      loop:
+        - { name: 'admin', password: 'admin123' }
+        - { name: 'user1', password: 'password' }
+        - { name: 'testuser', password: 'test123' }
+    
+    - name: Install web server
+      apt:
+        name: apache2
+        state: present
+    
+    - name: Start Apache
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+    
+    - name: Install FTP server
+      apt:
+        name: vsftpd
+        state: present
+    
+    - name: Configure FTP
+      lineinfile:
+        path: /etc/vsftpd.conf
+        regexp: '^anonymous_enable'
+        line: 'anonymous_enable=YES'
+        state: present
+      notify: restart vsftpd
+    
+    - name: Create log directory
+      file:
+        path: /var/log/redteam-target
+        state: directory
+        mode: '0755'
+    
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+    
+    - name: restart vsftpd
+      service:
+        name: vsftpd
+        state: restarted

@@ -1,0 +1,77 @@
+---
+- name: Setup Attacker VM with Pentesting Tools
+  hosts: attacker
+  become: yes
+  tasks:
+    
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Install base packages
+      apt:
+        name:
+          - git
+          - curl
+          - wget
+          - vim
+          - net-tools
+        state: present
+    
+    - name: Install reconnaissance tools
+      apt:
+        name:
+          - nmap
+          - masscan
+          - dnsutils
+        state: present
+    
+    - name: Install password cracking tools
+      apt:
+        name:
+          - hydra
+          - john
+          - hashcat
+        state: present
+    
+    - name: Install exploitation frameworks
+      apt:
+        name:
+          - metasploit-framework
+        state: present
+      ignore_errors: yes
+    
+    - name: Install web scanners
+      apt:
+        name:
+          - nikto
+          - dirb
+        state: present
+    
+    - name: Install network tools
+      apt:
+        name:
+          - netcat-traditional
+          - socat
+          - tcpdump
+          - wireshark
+        state: present
+    
+    - name: Create attack scripts directory
+      file:
+        path: /home/vagrant/attack-scripts
+        state: directory
+        owner: vagrant
+        group: vagrant
+        mode: '0755'
+    
+    - name: Create attack log directory
+      file:
+        path: /var/log/redteam
+        state: directory
+        mode: '0755'
+    
+    - name: Display installed tools
+      debug:
+        msg: "Attacker VM configured with pentesting tools!"
