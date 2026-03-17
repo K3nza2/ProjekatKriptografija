@@ -1,0 +1,26 @@
+# Vagrant
+.vagrant/
+*.log
+
+# Ansible
+*.retry
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+log/
+
+# SSH Keys
+*.pem
+*.key
+*_rsa
+*_rsa.pub
+private_key
+
+# Temporary files
+*.tmp
+*.swp
+*~

