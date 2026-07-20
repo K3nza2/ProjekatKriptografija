@@ -96,12 +96,19 @@ README.md
 
 ## 3. Faze rada (redosled implementacije)
 
-**Faza 1 — Terraform osnova (libvirt)**
-- [ ] Modul za izolovanu mrežu
-- [ ] Modul za VM (parametrizovan: ime, IP, image, resursi) — koristi se 3x (attacker/target/blueteam)
-- [ ] cloud-init konfiguracija (SSH ključ, hostname, mrežni podaci)
-- [ ] Output: automatski generisan Ansible inventory fajl
-- [ ] Test: `terraform apply` diže 3 VM-a, mogu da im se `ssh`-uje
+**Faza 1 — Terraform osnova (libvirt)** ✅ ZAVRŠENO (19-20.7.2026)
+- [x] Modul za izolovanu mrežu
+- [x] Modul za VM (parametrizovan: ime, IP, image, resursi) — koristi se 3x (attacker/target/blueteam)
+- [x] cloud-init konfiguracija (SSH ključ, hostname, mrežni podaci)
+- [x] Output: automatski generisan Ansible inventory fajl
+- [x] Test: `terraform apply` diže 3 VM-a, mogu da im se `ssh`-uje i `ansible ping` prolazi na sve tri
+
+Sistemski problemi rešeni usput (trajno, ne ponavljati):
+- `dmacvicar/libvirt` provider pinovan na `0.7.6` (novije verzije ~0.9.x imaju drugačiju šemu resursa)
+- Storage pool `default` mora ručno da se kreira na svežoj libvirt instalaciji
+- `genisoimage` paket potreban za cloud-init ISO (`mkisofs`)
+- `/etc/libvirt/qemu.conf`: `user = "root"`, `group = "root"`, `security_driver = "none"` — bez ovoga QEMU ne može da čita base image/diskove (permission denied uprkos ispravnom Unix vlasništvu, uzrok: libvirt-generisani per-VM AppArmor profili)
+- Privatni SSH ključ mora imati dozvole `600`, inače ga SSH agent tiho odbija
 
 **Faza 2 — Ansible refaktoring**
 - [ ] Prebaciti postojeće playbook-ove u role strukturu
@@ -142,4 +149,4 @@ README.md
 
 ## 5. Sledeći konkretan korak
 
-Kreni od **Faze 1**: Terraform modul za libvirt mrežu + parametrizovani VM modul. To je fundacija na kojoj sve ostalo stoji.
+Faza 1 gotova. Sledeće: **Faza 2** — refaktoring `setup-attacker.yml`/`setup-target.yml` u role strukturu, dodavanje `blueteam-setup` role (Wazuh) i `wazuh-agent` role za target. Napomena: mrežni mod se menja sa `none` na `nat` u ovoj fazi (Wazuh/apt instalacije zahtevaju internet pristup).
